@@ -1,0 +1,56 @@
+﻿<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:jms="http://www.springframework.org/schema/jms" xmlns:amq="http://activemq.apache.org/schema/core"
+	xsi:schemaLocation="
+     	http://www.springframework.org/schema/beans 
+     	http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+     	http://www.springframework.org/schema/context
+     	http://www.springframework.org/schema/context/spring-context-4.0.xsd
+     	http://www.springframework.org/schema/tx 
+     	http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+     	http://www.springframework.org/schema/jms 
+        http://www.springframework.org/schema/jms/spring-jms-4.0.xsd
+     	http://activemq.apache.org/schema/core
+        http://activemq.apache.org/schema/core/activemq-core-5.11.1.xsd">
+
+	<!-- Classe spring com o nome dos parâmetros dos métodos da arquitetura -->
+	<bean class="org.springframework.core.LocalVariableTableParameterNameDiscoverer" />
+
+	<!-- Conexao ActiveMQ -->
+	<bean id="connectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+		<property name="brokerURL" value="tcp://localhost:61616" />
+		<property name="userName" value="admin" />
+		<property name="password" value="admin" />
+	</bean>
+
+	<!-- Jms Template -->
+	<bean id="jsmTemplate" class="org.springframework.jms.core.JmsTemplate">
+		<property name="connectionFactory" ref="connectionFactory" />
+	</bean>
+
+	<!-- Filas -->
+	<bean id="filaEmail" class="org.apache.activemq.command.ActiveMQQueue">
+		<constructor-arg index="0" value="email" />
+	</bean>
+
+	<!-- Produtores -->
+	<bean id="enviarEmailJMSProducer" class="br.com.oobj.jms.EnviarEmailJMSProducer">
+		<property name="jmsTemplate" ref="jsmTemplate" />
+		<property name="destination" ref="filaEmail" />
+	</bean>
+
+	<!-- Consumidores -->
+	<bean id="enviarEmailJMSConsumer" class="br.com.oobj.jms.EnviarEmailJMSConsumer" />
+
+	<!-- Containers de Listeners -->
+	<bean class="org.springframework.jms.listener.DefaultMessageListenerContainer" id="containerJmsEmail" 
+		p:connectionFactory-ref="connectionFactory"
+		p:destination-ref="filaEmail" 
+		p:messageListener-ref="enviarEmailJMSConsumer"
+		p:concurrentConsumers="5"
+		p:maxConcurrentConsumers="50"
+		p:receiveTimeout="10000" 
+		p:idleTaskExecutionLimit="10"
+		p:idleConsumerLimit="5" />
+</beans>	
